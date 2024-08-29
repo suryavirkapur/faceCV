@@ -1,9 +1,15 @@
 import cv2
+import mediapipe as mp
 
 # Load the pre-trained cascades
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
+
+# Initialize MediaPipe Pose
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose()
+mp_drawing = mp.solutions.drawing_utils
 
 # Start video capture
 cap = cv2.VideoCapture(0)
@@ -11,8 +17,23 @@ cap = cv2.VideoCapture(0)
 while True:
     # Read frame from the video capture
     ret, frame = cap.read()
+    if not ret:
+        break
     
-    # Convert to grayscale
+    # Convert to RGB for MediaPipe
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    # Detect pose
+    pose_results = pose.process(rgb_frame)
+    
+    # Convert back to BGR for OpenCV display
+    frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
+    
+    # Draw pose landmarks
+    if pose_results.pose_landmarks:
+        mp_drawing.draw_landmarks(frame, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+    
+    # Convert to grayscale for face detection
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
     # Detect faces
@@ -36,7 +57,7 @@ while True:
             cv2.rectangle(roi_color, (sx, sy), (sx+sw, sy+sh), (0, 0, 255), 2)
     
     # Display the result
-    cv2.imshow('Video', frame)
+    cv2.imshow('ACM AI Demo', frame)
     
     # Break the loop when 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
